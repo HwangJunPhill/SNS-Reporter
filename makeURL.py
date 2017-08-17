@@ -1,74 +1,93 @@
-import time
 from bs4 import BeautifulSoup
 import datetime
 import urllib.request
+import json
 
-url = "http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&gameId="
+def FullURL():
+    date = str(datetime.datetime.today().date()).replace('-','')
+    fullUrl = "http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&data={}&gameId={}{}02017".format(date, date, GetKey())
+    return fullUrl
 
-url += str(datetime.datetime.today().date()).replace('-','')
+def DataURL():
+    date = str(datetime.datetime.today().date()).replace('-','')
+    dataUrl = "http://sportsdata.naver.com/ndata//kbo/2017/08/{}{}02017.nsd".format(date,GetKey())
+    return dataUrl
 
-urlKey = {}
-req = urllib.request.Request("http://www.hanwhaeagles.co.kr/html/game/1st_schedule_list1.asp")
-data = urllib.request.urlopen(req).read()
+def GetKey():
 
-bs = BeautifulSoup(data, 'html.parser')
+    urlKey = {}
+    req = urllib.request.Request("http://www.hanwhaeagles.co.kr/html/game/1st_schedule_list1.asp")
+    data = urllib.request.urlopen(req).read()
 
-for item in bs.select('.box.today'):
-    urlKey['home'] = item.find('em').get_text()
-    if urlKey['home'] == None:
-        urlKey['home'] = "원정경기"
-    urlKey['team'] = item.find('img')['alt']
+    bs = BeautifulSoup(data, 'html.parser')
 
-    if urlKey['team'] == "KIA":
-        urlKey['team'] = "HT"
+    for item in bs.select('.box.today'):
+        try:
+            urlKey['home'] = item.find('em').get_text()
 
-    elif urlKey['team'] == "두산":
-        urlKey['team'] = "OB"
+        except:
+            #No Game Today
+            urlKey['home'] = "홈경기"
+            urlKey['team'] = "삼성"
 
-    elif urlKey['team'] == "KT":
-        urlKey['team'] = "KT"
+        else:
+            if urlKey['home'] == '':
+                urlKey['home'] = "원정경기"
+            urlKey['team'] = item.find('img')['alt']
 
-    elif urlKey['team'] == "롯데":
-        urlKey['team'] = "LT"
+        if urlKey['team'] == "KIA":
+            urlKey['team'] = "HT"
 
-    elif urlKey['team'] == "LG":
-        urlKey['team'] = "LG"
+        elif urlKey['team'] == "두산":
+            urlKey['team'] = "OB"
 
-    elif urlKey['team'] == "삼성":
-        urlKey['team'] = "SS"
+        elif urlKey['team'] == "KT":
+            urlKey['team'] = "KT"
 
-    elif urlKey['team'] == "NC":
-        urlKey['team'] = "NC"
+        elif urlKey['team'] == "롯데":
+            urlKey['team'] = "LT"
 
-    elif urlKey['team'] == "SK":
-        urlKey['team'] = "SK"
+        elif urlKey['team'] == "LG":
+            urlKey['team'] = "LG"
 
-    elif urlKey['team'] == "넥센":
-        urlKey['team'] = "WO"
+        elif urlKey['team'] == "삼성":
+            urlKey['team'] = "SS"
+
+        elif urlKey['team'] == "NC":
+            urlKey['team'] = "NC"
+
+        elif urlKey['team'] == "SK":
+            urlKey['team'] = "SK"
+
+        elif urlKey['team'] == "넥센":
+            urlKey['team'] = "WO"
+
+    if urlKey['home'] == "원정경기":
+        urlKey['team'] = "HH" + str(urlKey['team'])
+
+    elif urlKey['home'] == "홈경기":
+        urlKey['team'] = str(urlKey['team']) +"HH"
+
+    return urlKey['team']
+
+def GetJson():
+
+    #req = urllib.request.Request(DataURL())
+    #for debug
+    req = urllib.request.Request("http://sportsdata.naver.com/ndata//kbo/2017/08/20170817HHNC02017.nsd")
+    data = urllib.request.urlopen(req).read()
+
+    print(data)
+
+    data = data.decode(encoding='UTF-8')
+    data = urllib.request.unquote(data)
+    #
+    print(data)
+
+    # data = json.loads(data)
+    #
+    # print(data)
 
 
-if urlKey['home'] == "원정경기":
-    url += "HH"
-    url += str(urlKey['team'])
-
-elif urlKey['home'] == "홈경기":
-    url += str(urlKey['team'])
-    url += "HH"
-
-url += "2017"
-
-print(url)
-
-
-#l = bs.find_all('div')
-#
-# for s in l:
-#     try:
-#         prop = s.get('class')
-#         if prop != None and prop[0] == "box" and len(prop) == 2:
-#             l = s
-#             break
-#     except UnicodeEncodeError:
-#         print("Error")
-#
-#print(l)
+#print(inputUrlreturnDict())
+#If the game set and hh homepaged edited, GetKey only get win or lose.
