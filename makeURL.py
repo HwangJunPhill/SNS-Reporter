@@ -5,12 +5,22 @@ import json
 
 def FullURL():
     date = str(datetime.datetime.today().date()).replace('-','')
-    fullUrl = "http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&data={}&gameId={}{}02017".format(date, date, GetKey())
+    key = GetKey()
+
+    if key == "No Game Today":
+        return key
+
+    fullUrl = "http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&data={}&gameId={}{}02017".format(date, date, key)
     return fullUrl
 
 def DataURL():
     date = str(datetime.datetime.today().date()).replace('-','')
-    dataUrl = "http://sportsdata.naver.com/ndata//kbo/2017/08/{}{}02017.nsd".format(date,GetKey())
+    key = GetKey()
+
+    if key == "No Game Today":
+        return key
+
+    dataUrl = "http://sportsdata.naver.com/ndata//kbo/2017/08/{}{}02017.nsd".format(date,key)
     return dataUrl
 
 def GetKey():
@@ -27,8 +37,7 @@ def GetKey():
 
         except:
             #No Game Today
-            urlKey['home'] = "홈경기"
-            urlKey['team'] = "삼성"
+            return "No Game Today"
 
         else:
             if urlKey['home'] == '':
@@ -70,24 +79,29 @@ def GetKey():
 
     return urlKey['team']
 
-def GetJson():
+def GetJson(url):
 
     #req = urllib.request.Request(DataURL())
     #for debug
-    req = urllib.request.Request("http://sportsdata.naver.com/ndata//kbo/2017/08/20170817HHNC02017.nsd")
+    req = urllib.request.Request(url)
     data = urllib.request.urlopen(req).read()
-
-    print(data)
 
     data = data.decode(encoding='UTF-8')
     data = urllib.request.unquote(data)
-    #
-    print(data)
 
-    # data = json.loads(data)
-    #
-    # print(data)
+    data = data.replace('<meta http-equiv=Content-type content="text/html; charset=utf-8"><script>document.domain="naver.com";parent.sportscallback_relay(document, ', '')
+    data = data.replace(');</script>', '')
 
+    data = json.loads(data)
+
+    return data
+
+    #print(len(data['relayTexts']))
+
+
+GetKey()
+
+#GetJson()
 
 #print(inputUrlreturnDict())
 #If the game set and hh homepaged edited, GetKey only get win or lose.
