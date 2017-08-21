@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
+import makeURL
 from selenium import webdriver
 import urllib.request
 import time
+import blackmagic
 
 driver = webdriver.Chrome('Z:\chromedriver')
 
@@ -12,32 +14,41 @@ class twitter:
 
     def login(self):
         self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[1]/input').send_keys('email')
-        self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[2]/input').send_keys('passwd')
+        self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[2]/input').send_keys('password')
         self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/div[2]/button').submit()
 
     def post(self, post = "test"):
-
+        self.twit.get('https://twitter.com/')
         self.twit.find_element_by_xpath('//*[@id="global-new-tweet-button"]').click()
         self.twit.find_element_by_xpath('//*[@id="tweet-box-global"]').send_keys(post)
         self.twit.find_element_by_xpath('//*[@id="global-tweet-dialog-dialog"]/div[2]/div[4]/form/div[3]/div[2]/button').click()
         time.sleep(3)
-        self.twit.get('https://twitter.com/')
+
 
 class db:
     pass
 
 class getRecord:
+    def __init__(self):
+        self.t = twitter()
+        self.t.login()
+
+
     def wl(self):
         pass
 
     def GetLinUp(self):
+        url = makeURL.FullURL()
         Lineup = ""
         Lineup2 = ""
 
-        driver.get('http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&gameId=20170811SSHH02017')
+        if url == "No Game Today":
+            print(url)
+            return
+
+        driver.get(url)
 
         html = driver.page_source
-        soup = BeautifulSoup(html, 'html.parser')
 
         driver.find_element_by_xpath('//*[@id="away_lineup_btn"]').click()
 
@@ -70,69 +81,108 @@ class getRecord:
             Lineup2 += "\n"
 
 
-        t = twitter()
-        t.login()
-        t.post(Lineup)
+        self.t.post(Lineup)
         time.sleep(1)
-        t.post(Lineup2)
-
-        # '//*[@id="lineup_batter_player_0"]/td[2]/div/a'
-        # '//*[@id="lineup_batter_player_0"]/td[3]'
-        #
-        # '//*[@id="lineup_batter_player_1"]/td[2]/div/a'
+        self.t.post(Lineup2)
 
     def sms(self):
+        url = makeURL.DataURL()
 
-        #driver.get('http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&gameId=20170811SSHH02017')
+        if url == "No Game Today":
+            print(url)
+            return
 
-        driver.get('http://sports.news.naver.com/gameCenter/textRelay.nhn?category=kbo&data=20170811&gameId=20170811SSHH02017')
+        tmp = makeURL.GetJson(url)
 
-        html = driver.page_source
-        soup = BeautifulSoup(html, 'html.parser')
+        curInning = tmp['currentInning']
 
-        notices = soup.select('#relay_text')
+        curBatter = tmp['relayTexts'][curInning][0]['liveText']
 
-        print(notices)
+        blackmagic.dbgprint(curInning, curBatter)
 
+        while True:
+            data = makeURL.GetJson(url)
 
-        # for item in bs.select('span.c_id'):
-        #     print(item)
-        #
-        # l = bs.find_all('div')
-        #
-        # #print(l)
-        #
-        # for s in l:
-        #     print(s.get('class'))
-        #     # try:
-        #     #     prop = s.get('class')
-        #     #     if prop != None and prop[0] == "scrl_areaovr":
-        #     #         l = s
-        #     #         print(s)
-        #     #         break
-        #     # except UnicodeEncodeError:
-        #     #     print("Error")
+            score = data['gameInfo']['hName'] + " " + str(data['scoreBoard']['rheb']['home']['r']) \
+                    + " : " + str(data['scoreBoard']['rheb']['away']['r']) + " " + data['gameInfo']['aName']
 
-# #access url
-# driver.get('https://www.facebook.com')
-#
-# driver.find_element_by_name('email').send_keys('email')
-# driver.find_element_by_name('pass').send_keys('passwd')
-#
-# driver.find_element_by_id('u_0_u').click()
-#
-# driver.get('https://www.facebook.com/%ED%95%9C%ED%99%94-%EC%9D%B4%EA%B8%80%EC%8A%A4-%EC%8A%B9%ED%8C%A8-%EC%95%8C%EB%A6%BC-766948450152743/')
-#
-# try:
-#     driver.find_element_by_name('q').send_keys('hi')
-#         #driver.find_element_by_xpath('//*[@id="js_8"]/form/div[1]/div[2]/div/textarea').click()
-# except:
-#     print("fuck")
-#
-# #driver.find_element_by_class_name('_1mf7 _4jy0 _4jy3 _4jy1 _51sy selected _42ft').clic()
+            string = score
+
+            #if Inning in var curInning and JSON Inning different, refresh and print last liveText
+            if curInning != data['currentInning']:
+                curInning = data['currentInning']
+
+            #if Current Batter is different with batter in curBatter , print curBatter's record
+            #Lead Off
+            try:
+                if data['relayTexts'][curInning] == []:
+                    pass
+            except:
+                pass
+
+            try:
+                if curBatter != data['relayTexts'][curInning][0]['liveText']:
+                    curBatterIndex = 0
+                    prevBatterIndex = 0
+
+                    for x in data['relayTexts'][curInning]:
+                        curBatterIndex += 1
+                        if x['liveText'] == curBatter:
+                            break
+
+                    for x in range(curBatterIndex, len(data['relayTexts'][curInning])):
+
+                        if data['relayTexts'][curInning][x]['liveText'][1] == '번':
+                            prevBatterIndex = x
+                            break
+
+                    for x in reversed(range(curBatterIndex, prevBatterIndex)):
+                        if data['relayTexts'][curInning][x]['liveText'][1] == '구':
+                            pass
+                        elif '병살' in data['relayTexts'][curInning][x]['liveText'] \
+                                or '주자' in data['relayTexts'][curInning][x]['liveText'] \
+                                or '홈인' in data['relayTexts'][curInning][x]['liveText'] \
+                                or '홈런' in data['relayTexts'][curInning][x]['liveText'] \
+                                or '교체' in data['relayTexts'][curInning][x]['liveText']\
+                                or '타격' in data['relayTexts'][curInning][x]['liveText']\
+                                or '실패' in data['relayTexts'][curInning][x]['liveText']\
+                                or '도루' in data['relayTexts'][curInning][x]['liveText']:
+
+                            string += "\n" + data['relayTexts'][curInning][x]['liveText']
+
+                    curBatter = data['relayTexts'][curInning][0]['liveText']
+            except:
+                pass
+
+            #여기까지 전송하고
+
+            if string == score:
+                pass
+            else:
+
+                if data['currentPlayers']['away']['playerType'] == "pitcher":
+                    self.pitcher = data['currentPlayers']['away']['playerInfo']['name']
+                elif data['currentPlayers']['home']['playerType'] == "pitcher":
+                    self.pitcher = data['currentPlayers']['home']['playerInfo']['name']
+
+                string += "\n\n" + "현재 투수 " + self.pitcher
+
+                print(string)
+                self.t.post(string)
+
+            string = score
+
+            #if the game set, print final
+            if data['relayTexts']['final'] != []:
+                for x in data['relayTexts']['final']:
+                    string += "\n" + x['liveText']
+
+                print(string)
+                self.t.post(string)
+                break
+
 
 if __name__ == '__main__':
-
     a = getRecord()
-    #a.GetLinUp()
+    a.GetLinUp()
     a.sms()
