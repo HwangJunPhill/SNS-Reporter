@@ -14,7 +14,7 @@ class twitter:
 
     def login(self):
         self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[1]/input').send_keys('email')
-        self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[2]/input').send_keys('password')
+        self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/fieldset/div[2]/input').send_keys('passwd')
         self.twit.find_element_by_xpath('//*[@id="page-container"]/div/div[1]/form/div[2]/button').submit()
 
     def post(self, post = "test"):
@@ -24,18 +24,10 @@ class twitter:
         self.twit.find_element_by_xpath('//*[@id="global-tweet-dialog-dialog"]/div[2]/div[4]/form/div[3]/div[2]/button').click()
         time.sleep(3)
 
-
-class db:
-    pass
-
 class getRecord:
     def __init__(self):
         self.t = twitter()
         self.t.login()
-
-
-    def wl(self):
-        pass
 
     def GetLinUp(self):
         url = makeURL.FullURL()
@@ -153,8 +145,6 @@ class getRecord:
                     curBatter = data['relayTexts'][curInning][0]['liveText']
             except:
                 pass
-
-            #여기까지 전송하고
 
             if string == score:
                 pass
